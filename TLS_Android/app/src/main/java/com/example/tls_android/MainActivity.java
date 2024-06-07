@@ -74,17 +74,9 @@ public class MainActivity extends AppCompatActivity {
         btnTurnOn.setOnClickListener(v -> {
             BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this,
-                            new String[]{Manifest.permission.BLUETOOTH_CONNECT},
-                            REQUEST_BLUETOOTH_CONNECT);
-                } else {
                     // Permission has already been granted, proceed with enabling Bluetooth
                     Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     enableBluetoothLauncher.launch(enableBtIntent);
-
-
-                }
             }
         });
     }
