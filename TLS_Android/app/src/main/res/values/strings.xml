@@ -12,6 +12,7 @@
     <string name="label_button_disconnect_bluetooth">Disconnect</string>
     <string name="label_button_send_data">Send</string>
     <string name="label_text_send_data">Type a text to send</string>
+    <string name="label_button_expand_collapse_list">Expand/Collapse List</string>
     <!--    -->
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
