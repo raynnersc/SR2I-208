@@ -20,6 +20,7 @@ import android.os.Bundle;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -398,24 +399,57 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     private void bluetoothConnect(String address) {
-        try {
-            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
-            UUID btUUID;
+        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
+        UUID btUUID;
+        btUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-            if (device.getUuids() != null && device.getUuids().length > 0) {
+        int counter = 0;
+        boolean isConnected = false;
+        final int MAX_TRIES = 3;
+
+        while (!isConnected && counter < MAX_TRIES) {
+            try {
+                socket = device.createRfcommSocketToServiceRecord(btUUID);
+                Log.d("socket created", socket.toString());
+                socket.connect();
+                isConnected = socket.isConnected();
+                Log.d("BluetoothConnection", "Connection established");
+                startListening();
+            } catch (IOException e) {
+                Log.e("BluetoothConnection", "Connection attempt failed", e);
+                if (socket != null) {
+                    try {
+                        socket.close();  // Close the socket to release resources
+                    } catch (IOException closeException) {
+                        Log.e("BluetoothConnection", "Error closing socket", closeException);
+                    }
+                }
+                try {
+                    Thread.sleep(1000);  // Sleep to give the device time to reset its state
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            counter++;
+        }
+
+        if (!isConnected) {
+            Log.e("BluetoothConnection", "All connection attempts failed.");
+        }
+
+        //Method m = device.getClass().getMethod("createRfcommSocketToServiceRecord", UUID.class);
+        //socket = (BluetoothSocket) m.invoke(device,btUUID);
+            /*if (device.getUuids() != null && device.getUuids().length > 0) {
                 btUUID = device.getUuids()[0].getUuid();
             } else {
                 btUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); // UUID for Serial Port Profile (SPP)
-            }
-            btUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-            Log.d("BluetoothConnection", "UUID: " + (btUUID != null ? btUUID.toString() : "No UUID available"));
+            }*/
+        //btUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+        //Log.d("BluetoothConnection", "UUID: " + (btUUID != null ? btUUID.toString() : "No UUID available"));
 
-            socket = device.createRfcommSocketToServiceRecord(btUUID);
-            socket.connect();
-            startListening();
-        } catch (IOException e) {
-            Log.e("BluetoothConnection", "Failed to connect: " + e.getMessage());
-        }
+        //socket = device.createRfcommSocketToServiceRecord(btUUID);
+
+
     }
 
     private void bluetoothDisconnect() {
