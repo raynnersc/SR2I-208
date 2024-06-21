@@ -12,7 +12,7 @@
     <string name="label_button_disconnect_bluetooth">Disconnect</string>
     <string name="label_button_send_data">Send</string>
     <string name="label_text_send_data">Type a text to send</string>
-    <string name="label_button_expand_collapse_list">Expand/Collapse</string>
+    <string name="label_button_expand_collapse_list">View List</string>
     <string name="label_button_clear_log">Clear</string>
     <string name="label_button_tls">TLS</string>
     <!--    -->

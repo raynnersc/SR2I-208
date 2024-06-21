@@ -5,53 +5,18 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.UUID;
-
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Handler;
 import android.util.Log;
-import android.view.View;
-
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
-import com.example.tls_android.databinding.ActivityMainBinding;
-
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -60,14 +25,26 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.example.tls_android.databinding.ActivityMainBinding;
+
 import java.io.IOException;
-import java.util.UUID;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final long DISCOVERY_DURATION = 2000;
-    private AppBarConfiguration appBarConfiguration;
-    private ActivityMainBinding binding;
 
     private ActivityResultLauncher<Intent> enableBluetoothLauncher;
     private BroadcastReceiver permissionReceiver;
@@ -89,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
 
@@ -112,16 +89,16 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize the launcher with the result handling logic
         enableBluetoothLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    // Bluetooth has been enabled
-                    Toast.makeText(this, "Bluetooth is now enabled", Toast.LENGTH_SHORT).show();
-                } else {
-                    // Bluetooth enabling was cancelled or failed
-                    Toast.makeText(this, "Failed to enable Bluetooth", Toast.LENGTH_SHORT).show();
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        // Bluetooth has been enabled
+                        Toast.makeText(this, "Bluetooth is now enabled", Toast.LENGTH_SHORT).show();
+                    } else {
+                        // Bluetooth enabling was cancelled or failed
+                        Toast.makeText(this, "Failed to enable Bluetooth", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }
         );
 
         //TURN ON Bluetooth on the phone
@@ -185,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
 
         Button btnConnect = findViewById(R.id.button_connect_bluetooth);
         btnConnect.setOnClickListener(v -> {
-            if(device != null) {
+            if (device != null) {
                 bluetoothConnect();
                 appendToLog("Connected!");
             } else {
@@ -230,9 +207,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Button btnTLS = findViewById(R.id.button_tls);
-        btnTLS.setOnClickListener(v -> {
-            appendToLog("Using TLS...");
-        });
+        btnTLS.setOnClickListener(v -> appendToLog("Using TLS..."));
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -286,13 +261,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
-    }
-
-    @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
@@ -322,6 +290,8 @@ public class MainActivity extends AppCompatActivity {
         } else if (requestCode == ACCESS_FINE_LOCATION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Permission was granted
+                Button btnExpandCollapseList = findViewById(R.id.button_toggle_list);
+                btnExpandCollapseList.performClick();  // Re-attempt enabling Bluetooth
             } else {
                 // Permission was denied
                 Toast.makeText(this, "Location permission not granted", Toast.LENGTH_SHORT).show();
@@ -356,7 +326,9 @@ public class MainActivity extends AppCompatActivity {
         try {
             Method m = device.getClass().getMethod("createRfcommSocket", int.class);
             socket = (BluetoothSocket) m.invoke(device, 1);
-            socket.connect();
+            if (socket != null) {
+                socket.connect();
+            }
             startListening();
         } catch (IOException e) {
             Log.e("BluetoothConnection", "Failed to connect: " + e.getMessage());
@@ -400,9 +372,7 @@ public class MainActivity extends AppCompatActivity {
                     String receivedMessage = new String(buffer, 0, bytes);
                     Log.d("BluetoothConnection", "Received: " + receivedMessage);
 
-                    runOnUiThread(() -> {
-                        appendToLog("Received: " + receivedMessage);
-                    });
+                    runOnUiThread(() -> appendToLog("Received: " + receivedMessage));
                 }
             } catch (IOException e) {
                 Log.e("BluetoothConnection", "Error reading from input stream: " + e.getMessage());
