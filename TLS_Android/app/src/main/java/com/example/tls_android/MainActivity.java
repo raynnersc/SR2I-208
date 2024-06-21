@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnDisconnect = findViewById(R.id.button_disconnect_bluetooth);
         btnDisconnect.setOnClickListener(v -> {
             if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
-                bluetoothDisconnect();
+                bluetoothDisconnect(isTLSEnable);
                 appendToLog("Disconnected!");
             }
         });
@@ -202,15 +202,15 @@ public class MainActivity extends AppCompatActivity {
                     if (!text.isEmpty()) {
                         appendToLog("Sent: " + text);
                         text = "SEND" + text;
-                        if (isTLSEnable)
-                            sendData(text);
-                        else {
+                        if (isTLSEnable) {
                             try {
                                 SSLHandler.sendEncryptedData(text, socket);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
                         }
+                        else
+                            sendData(text);
                         editText.setText("");  // Clear the input field
                     }
                 } else {
@@ -322,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
     private void bluetoothConnect(boolean isTLSEnabled) {
         try {
             Method m = device.getClass().getMethod("createRfcommSocket", int.class);
-            socket = (BluetoothSocket) m.invoke(device, 1);
+            socket = (BluetoothSocket) m.invoke(device, 3);
             if (socket != null) {
                 socket.connect();
             }
@@ -337,10 +337,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void bluetoothDisconnect() {
+    private void bluetoothDisconnect(boolean isTLSEnabled) {
         try {
             if (socket != null) {
-                sendData("OFF");
+                if (isTLSEnabled)
+                    SSLHandler.sendEncryptedData("OFF", socket);
+                else
+                    sendData("OFF");
                 socket.close();
                 device = null;
             }
