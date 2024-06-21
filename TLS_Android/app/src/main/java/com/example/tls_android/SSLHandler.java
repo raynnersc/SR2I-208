@@ -137,4 +137,75 @@ public class SSLHandler {
         return newSSLEngine;
     }
 
+    private void sendEncryptedData(String message, BluetoothSocket socket) throws IOException {
+        ByteBuffer myAppData = ByteBuffer.wrap(message.getBytes());
+        ByteBuffer myNetData = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
+
+        // Wrap
+        myNetData.clear();
+        SSLEngineResult result = sslEngine.wrap(myAppData, myNetData);
+        switch (result.getStatus()) {
+            case OK:
+                myNetData.flip();
+                while (myNetData.hasRemaining()) {
+                    socket.getOutputStream().write(myNetData.array(), myNetData.position(), myNetData.limit());
+                    myNetData.position(myNetData.limit());
+                }
+                break;
+            case BUFFER_OVERFLOW:
+                // Adjust the buffer size as per the SSL session needs
+                break;
+            case BUFFER_UNDERFLOW:
+                // Should never happen during a wrap
+                break;
+            case CLOSED:
+                throw new IOException("SSL Engine closed");
+        }
+    }
+
+    private String receiveEncryptedData(BluetoothSocket socket) throws IOException {
+        ByteBuffer peerNetData = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
+        ByteBuffer peerAppData = ByteBuffer.allocate(sslEngine.getSession().getApplicationBufferSize());
+
+        // Read from socket
+        if (socket.getInputStream().read(peerNetData.array()) < 0) {
+            if (sslEngine.isInboundDone() && sslEngine.isOutboundDone()) {
+                return null; // No more data to process
+            }
+            try {
+                sslEngine.closeInbound();
+            } catch (Exception e) {
+                Log.e("BluetoothConnection", "Failed to close inbound", e);
+            }
+            sslEngine.closeOutbound();
+            return null;
+        }
+
+        peerNetData.flip();
+        SSLEngineResult result;
+        while (peerNetData.hasRemaining()) {
+            result = sslEngine.unwrap(peerNetData, peerAppData);
+            peerNetData.compact();  // In case of partial reads
+            switch (result.getStatus()) {
+                case OK:
+                    peerAppData.flip();
+                    byte[] data = new byte[peerAppData.limit()];
+                    peerAppData.get(data);
+                    return new String(data);
+                case BUFFER_OVERFLOW:
+                    // Adjust the buffer size if there's insufficient space
+                    peerAppData = ByteBuffer.allocate(sslEngine.getSession().getApplicationBufferSize());
+                    break;
+                case BUFFER_UNDERFLOW:
+                    // More data needed to be received from the peer
+                    continue;
+                case CLOSED:
+                    return null; // SSL Engine has closed
+            }
+        }
+
+        return null;
+    }
+
+
 }

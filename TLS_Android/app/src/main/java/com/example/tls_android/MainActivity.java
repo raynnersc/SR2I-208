@@ -362,6 +362,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+
     private void startListening() {
         new Thread(() -> {
             try {
