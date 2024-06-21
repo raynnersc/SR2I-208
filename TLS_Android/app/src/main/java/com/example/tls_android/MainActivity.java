@@ -129,6 +129,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Button btnClearLog = findViewById(R.id.button_clear_log);
+        btnClearLog.setOnClickListener(v -> {
+            TextView textLog = findViewById(R.id.text_receive_data);
+            textLog.setText("");
+        });
+
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
         filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
@@ -237,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
                     String text = editText.getText().toString();
                     if (!text.isEmpty()) {
                         appendToLog("Sent: " + text);
-                        sendData(text);
+                        sendData("SEND"+text);
                         editText.setText("");  // Clear the input field
                     }
                 } else {
@@ -426,13 +432,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /*private BluetoothSocket createRfcommSocket(int channel) throws IOException {
-        return new BluetoothSocket(BluetoothSocket.TYPE_RFCOMM, -1, true, true, this, channel);
-    }*/
 
     private void bluetoothDisconnect() {
         try {
             if (socket != null) {
+                sendData("OFF");
                 socket.close();
             }
         } catch (IOException e) {
