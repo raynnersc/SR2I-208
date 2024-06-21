@@ -138,7 +138,7 @@ public class SSLHandler {
         return newSSLEngine;
     }
 
-    private void sendEncryptedData(String message, BluetoothSocket socket) throws IOException {
+    public static void sendEncryptedData(String message, BluetoothSocket socket) throws IOException {
         ByteBuffer myAppData = ByteBuffer.wrap(message.getBytes());
         ByteBuffer myNetData = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
 
@@ -164,7 +164,7 @@ public class SSLHandler {
         }
     }
 
-    private String receiveEncryptedData(BluetoothSocket socket) throws IOException {
+    public static String receiveEncryptedData(BluetoothSocket socket) throws IOException {
         ByteBuffer peerNetData = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
         ByteBuffer peerAppData = ByteBuffer.allocate(sslEngine.getSession().getApplicationBufferSize());
 

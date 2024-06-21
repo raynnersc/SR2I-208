@@ -22,6 +22,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,6 +30,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -161,10 +163,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        SwitchCompat btnTLS = findViewById(R.id.button_tls);
+        boolean isTLSEnable = btnTLS.isChecked();
+
         Button btnConnect = findViewById(R.id.button_connect_bluetooth);
         btnConnect.setOnClickListener(v -> {
             if (device != null) {
-                bluetoothConnect();
+                bluetoothConnect(isTLSEnable);
                 appendToLog("Connected!");
             } else {
                 Toast.makeText(this, "Please select a device from the list.", Toast.LENGTH_SHORT).show();
@@ -196,7 +201,16 @@ public class MainActivity extends AppCompatActivity {
                     String text = editText.getText().toString();
                     if (!text.isEmpty()) {
                         appendToLog("Sent: " + text);
-                        sendData("SEND" + text);
+                        text = "SEND" + text;
+                        if (isTLSEnable)
+                            sendData(text);
+                        else {
+                            try {
+                                SSLHandler.sendEncryptedData(text, socket);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                         editText.setText("");  // Clear the input field
                     }
                 } else {
@@ -205,12 +219,6 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH}, REQUEST_ENABLE_BT);
             }
-        });
-
-        Button btnTLS = findViewById(R.id.button_tls);
-        btnTLS.setOnClickListener(v -> {
-            appendToLog("Using TLS...");
-            TLSConnect();
         });
     }
 
@@ -247,21 +255,6 @@ public class MainActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -326,14 +319,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @SuppressLint("MissingPermission")
-    private void bluetoothConnect() {
+    private void bluetoothConnect(boolean isTLSEnabled) {
         try {
             Method m = device.getClass().getMethod("createRfcommSocket", int.class);
             socket = (BluetoothSocket) m.invoke(device, 1);
             if (socket != null) {
                 socket.connect();
             }
-            startListening();
+            if (isTLSEnabled)
+                TLSConnect();
+            else
+                startListening();
         } catch (IOException e) {
             Log.e("BluetoothConnection", "Failed to connect: " + e.getMessage());
         } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
