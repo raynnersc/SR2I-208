@@ -14,15 +14,23 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLSession;
 
+import android.content.Context;
+
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.SecureRandom;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManagerFactory;
+
 public class SSLHandler {
     private static SSLEngine sslEngine;
 
     public static void initSSLEngine(BluetoothSocket socket, Context context) throws IOException {
         try {
-            SSLContext sslContext = createSSLContext(context);  // Method to initialize SSLContext with your certificates
-            assert sslContext != null;
-            sslEngine = sslContext.createSSLEngine();
-            sslEngine.setUseClientMode(true);
+            sslEngine = createSSLEngine(context);
 
             SSLSession session = sslEngine.getSession();
             ByteBuffer myAppData = ByteBuffer.allocate(session.getApplicationBufferSize());
@@ -100,9 +108,33 @@ public class SSLHandler {
         }
     }
 
-    private static SSLContext createSSLContext(Context context) throws Exception {
-        // Your implementation here to load client certificates and initialize SSLContext
-        return null;
+    private static SSLEngine createSSLEngine(Context context) throws Exception {
+        // Load PEM files
+        InputStream caCertInput = context.getResources().openRawResource(R.raw.ca_cert);
+        InputStream clientCertInput = context.getResources().openRawResource(R.raw.client_cert);
+        InputStream clientKeyInput = context.getResources().openRawResource(R.raw.client_key);
+
+        // Load KeyStore and TrustStore
+        KeyStore keyStore = SSLUtils.loadKeyStore(clientCertInput, clientKeyInput, "password");
+        KeyStore trustStore = SSLUtils.loadTrustStore(caCertInput);
+
+        // Initialize KeyManagerFactory
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyManagerFactory.init(keyStore, "password".toCharArray());
+
+        // Initialize TrustManagerFactory
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(trustStore);
+
+        // Initialize SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
+
+        // Create and configure SSLEngine
+        SSLEngine newSSLEngine = sslContext.createSSLEngine();
+        newSSLEngine.setUseClientMode(true); // Set to false for server mode
+
+        return newSSLEngine;
     }
 
 }
