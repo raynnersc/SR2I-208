@@ -42,6 +42,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 
+
 public class MainActivity extends AppCompatActivity {
 
     private static final long DISCOVERY_DURATION = 2000;
@@ -329,6 +330,7 @@ public class MainActivity extends AppCompatActivity {
             if (socket != null) {
                 socket.connect();
             }
+            SSLHandler.initSSLEngine(socket, this);
             startListening();
         } catch (IOException e) {
             Log.e("BluetoothConnection", "Failed to connect: " + e.getMessage());
