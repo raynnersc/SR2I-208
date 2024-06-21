@@ -20,6 +20,7 @@ import android.os.Bundle;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -73,12 +74,17 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothSocket socket;
     private BluetoothDevice device;
 
+    // Constant for request code
+    private static final int REQUEST_ENABLE_BT = 1;
+    private static final int REQUEST_BLUETOOTH_CONNECT = 2;
+    private static final int REQUEST_DISCOVER_BT = 3;
+    private static final int ACCESS_FINE_LOCATION = 4;
+
     BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     ArrayList<String> deviceList = new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
 
     @SuppressLint("MissingPermission")
-    @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -131,8 +137,8 @@ public class MainActivity extends AppCompatActivity {
 
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(receiver, filter);
-//        filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-//        registerReceiver(receiver, filter);
+        filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        registerReceiver(receiver, filter);
 
         startDiscoveryIfNeeded();
         new Handler().postDelayed(() -> {
@@ -153,8 +159,6 @@ public class MainActivity extends AppCompatActivity {
                 String info = ((TextView) view).getText().toString();
                 String address = info.substring(info.length() - 17); //extracts address from the info text (last 17 characters)
                 device = bluetoothAdapter.getRemoteDevice(address); //get the bt device using its hardware address
-//                Log.d("bluetooth device info:", info);
-//                Log.d("bluetooth device address:", address);
                 appendToLog("bluetooth device info:" + info);
                 device.createBond(); //pair with bluetooth device (need to handle what to do next after creating bond)
                 listView.setVisibility(View.GONE);
@@ -196,8 +200,6 @@ public class MainActivity extends AppCompatActivity {
             if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
                 bluetoothDisconnect();
                 appendToLog("Disconnected!");
-//                bluetoothAdapter.disable();
-                Toast.makeText(MainActivity.this, "Bluetooth is now disabled", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -217,7 +219,7 @@ public class MainActivity extends AppCompatActivity {
                     String text = editText.getText().toString();
                     if (!text.isEmpty()) {
                         appendToLog("Sent: " + text);
-                        sendData(text);
+                        sendData("SEND" + text);
                         editText.setText("");  // Clear the input field
                     }
                 } else {
@@ -228,13 +230,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-    // Constant for request code
-    private static final int REQUEST_ENABLE_BT = 1;
-    private static final int REQUEST_BLUETOOTH_CONNECT = 2;
-    private static final int REQUEST_DISCOVER_BT = 3;
-
-    private static final int ACCESS_FINE_LOCATION = 4;
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -354,47 +349,22 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     private void bluetoothConnect() {
-        UUID btUUID;
-        btUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-        int counter = 0;
-        boolean isConnected = false;
-        final int MAX_TRIES = 3;
-
-        while (!isConnected && counter < MAX_TRIES) {
-            try {
-                socket = device.createRfcommSocketToServiceRecord(btUUID);
-                Log.d("socket created", socket.toString());
-                socket.connect();
-                isConnected = socket.isConnected();
-                Log.d("BluetoothConnection", "Connection established");
-                startListening();
-            } catch (IOException e) {
-                Log.e("BluetoothConnection", "Connection attempt failed", e);
-                if (socket != null) {
-                    try {
-                        socket.close();  // Close the socket to release resources
-                    } catch (IOException closeException) {
-                        Log.e("BluetoothConnection", "Error closing socket", closeException);
-                    }
-                }
-                try {
-                    Thread.sleep(1000);  // Sleep to give the device time to reset its state
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-            counter++;
-        }
-
-        if (!isConnected) {
-            Log.e("BluetoothConnection", "All connection attempts failed.");
+        try {
+            Method m = device.getClass().getMethod("createRfcommSocket", int.class);
+            socket = (BluetoothSocket) m.invoke(device, 1);
+            socket.connect();
+            startListening();
+        } catch (IOException e) {
+            Log.e("BluetoothConnection", "Failed to connect: " + e.getMessage());
+        } catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 
     private void bluetoothDisconnect() {
         try {
             if (socket != null) {
+                sendData("OFF");
                 socket.close();
                 device = null;
             }
@@ -413,7 +383,6 @@ public class MainActivity extends AppCompatActivity {
             Log.e("BluetoothConnection", "Error sending data: " + e.getMessage());
         }
     }
-
 
     private void startListening() {
         new Thread(() -> {
