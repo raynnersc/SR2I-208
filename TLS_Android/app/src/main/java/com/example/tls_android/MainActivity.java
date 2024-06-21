@@ -208,7 +208,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Button btnTLS = findViewById(R.id.button_tls);
-        btnTLS.setOnClickListener(v -> appendToLog("Using TLS..."));
+        btnTLS.setOnClickListener(v -> {
+            appendToLog("Using TLS...");
+            TLSConnect();
+        });
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
@@ -330,7 +333,6 @@ public class MainActivity extends AppCompatActivity {
             if (socket != null) {
                 socket.connect();
             }
-            SSLHandler.initSSLEngine(socket, this);
             startListening();
         } catch (IOException e) {
             Log.e("BluetoothConnection", "Failed to connect: " + e.getMessage());
@@ -362,8 +364,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
     private void startListening() {
         new Thread(() -> {
             try {
@@ -384,4 +384,12 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void TLSConnect() {
+        try {
+            SSLHandler.initSSLEngine(socket, this);
+        } catch (IOException e) {
+            Log.e("TLSConnection", "Failed to connect: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

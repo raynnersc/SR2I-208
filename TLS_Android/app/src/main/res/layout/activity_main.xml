@@ -92,11 +92,42 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"/>
 
-            <Button
-                android:id="@+id/button_tls"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/label_button_tls" />
+                android:orientation="horizontal"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="5dp">
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"/>
+
+                <FrameLayout
+                    android:id="@+id/frameLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/switch_background">
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/button_tls"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:checked="false"
+                        android:text="@string/label_button_tls"
+                        android:textColor="?attr/colorOnPrimary"
+                        android:layout_marginHorizontal="15dp"/>
+
+                </FrameLayout>
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"/>
+
+            </LinearLayout>
+
 
             <Space
                 android:layout_width="0dp"
@@ -122,11 +153,11 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <ListView xmlns:android="http://schemas.android.com/apk/res/android"
+            <ListView
                 android:id="@+id/listView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:visibility="invisible"/>
+                android:visibility="invisible" />
 
             <ScrollView
                 android:layout_width="match_parent"
@@ -135,7 +166,7 @@
                 <TextView
                     android:id="@+id/text_receive_data"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:background="@drawable/border"
                     android:textColor="@color/black"
                     android:layout_gravity="start"
@@ -163,8 +194,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:hint="@string/label_text_send_data"
                 android:inputType="text"
-                android:hint="@string/label_text_send_data"/>
+                android:minHeight="48dp"
+                android:textColorHint="#757575" />
 
             <Space
                 android:layout_width="8dp"

@@ -109,18 +109,19 @@ public class SSLHandler {
     }
 
     private static SSLEngine createSSLEngine(Context context) throws Exception {
+        String password = "password";
         // Load PEM files
         InputStream caCertInput = context.getResources().openRawResource(R.raw.ca_cert);
         InputStream clientCertInput = context.getResources().openRawResource(R.raw.client_cert);
         InputStream clientKeyInput = context.getResources().openRawResource(R.raw.client_key);
 
         // Load KeyStore and TrustStore
-        KeyStore keyStore = SSLUtils.loadKeyStore(clientCertInput, clientKeyInput, "password");
+        KeyStore keyStore = SSLUtils.loadKeyStore(clientCertInput, clientKeyInput, password);
         KeyStore trustStore = SSLUtils.loadTrustStore(caCertInput);
 
         // Initialize KeyManagerFactory
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, "password".toCharArray());
+        keyManagerFactory.init(keyStore, password.toCharArray());
 
         // Initialize TrustManagerFactory
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());

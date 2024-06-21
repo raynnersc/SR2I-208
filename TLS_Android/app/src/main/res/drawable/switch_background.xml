@@ -1,0 +1,7 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="?attr/colorPrimary" /> <!-- Cor de fundo da caixa -->
+    <stroke
+        android:width="0dp"/> <!-- Largura da borda da caixa -->
+    <corners android:radius="8dp" /> <!-- Raio dos cantos da caixa -->
+</shape>
