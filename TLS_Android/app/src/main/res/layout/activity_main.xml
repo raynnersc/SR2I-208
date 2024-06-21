@@ -93,6 +93,17 @@
                 android:layout_weight="1"/>
 
             <Button
+                android:id="@+id/button_tls"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_button_tls" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
+
+            <Button
                 android:id="@+id/button_clear_log"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -126,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
 
         //TURN ON Bluetooth on the phone
         Button btnTurnOn = findViewById(R.id.button_turnon_bluetooth);
-        // Set the click listener for the button
         btnTurnOn.setOnClickListener(v -> {
             if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
                 // Permission has already been granted, proceed with enabling Bluetooth
@@ -228,6 +227,11 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.BLUETOOTH}, REQUEST_ENABLE_BT);
             }
+        });
+
+        Button btnTLS = findViewById(R.id.button_tls);
+        btnTLS.setOnClickListener(v -> {
+            appendToLog("Using TLS...");
         });
     }
 
