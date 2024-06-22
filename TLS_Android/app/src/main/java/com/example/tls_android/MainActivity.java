@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
     private void bluetoothConnect(boolean isTLSEnabled) {
         try {
             Method m = device.getClass().getMethod("createRfcommSocket", int.class);
-            socket = (BluetoothSocket) m.invoke(device, 1);
+            socket = (BluetoothSocket) m.invoke(device, 3);
             if (socket != null) {
                 System.out.println("creating socket bluetooth");
                 socket.connect();

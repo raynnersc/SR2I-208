@@ -184,7 +184,7 @@ public class SSLHandler {
         // Initialize SSLContext
         SSLContext sslContext = null;
         try {
-            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext = SSLContext.getInstance("TLSv1.3");
             sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
         } catch (Exception e) {
             Log.e("SSLHandler", "Failed to initialize SSLContext: " + e.getMessage());
