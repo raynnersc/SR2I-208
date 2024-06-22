@@ -31,15 +31,21 @@ public class SSLHandler {
     public static void initSSLEngine(BluetoothSocket socket, Context context) throws IOException {
         try {
             sslEngine = createSSLEngine(context);
+            System.out.println("initSSLEngine - SSLEngine created");
 
             SSLSession session = sslEngine.getSession();
+            System.out.println("initSSLEngine - session created");
             ByteBuffer myAppData = ByteBuffer.allocate(session.getApplicationBufferSize());
             ByteBuffer myNetData = ByteBuffer.allocate(session.getPacketBufferSize());
             ByteBuffer peerAppData = ByteBuffer.allocate(session.getApplicationBufferSize());
             ByteBuffer peerNetData = ByteBuffer.allocate(session.getPacketBufferSize());
+//            ByteBuffer peerNetData = ByteBuffer.allocate(1024);
+            System.out.println("initSSLEngine - buffers allocated");
 
             sslEngine.beginHandshake();
+            System.out.println("initSSLEngine - beginHandshake");
             handleHandshake(socket, sslEngine, myNetData, peerNetData);
+            System.out.println("initSSLEngine - Handshake created");
         } catch (Exception e) {
             Log.e("BluetoothConnection", "SSL Engine initialization failed: " + e.getMessage());
             throw new IOException("Failed to initialize SSL Engine", e);
@@ -53,34 +59,47 @@ public class SSLHandler {
         myNetData.clear();
         peerNetData.clear();
 
-        SSLEngineResult result;
+        SSLEngineResult result = null;
         SSLEngineResult.HandshakeStatus handshakeStatus;
+        System.out.println("handleHandshake - inside");
 
         handshakeStatus = sslEngine.getHandshakeStatus();
         while (handshakeStatus != SSLEngineResult.HandshakeStatus.FINISHED &&
                 handshakeStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+            System.out.println("handleHandshake - inside handshake while");
             switch (handshakeStatus) {
                 case NEED_UNWRAP:
-                    if (inStream.read(peerNetData.array()) < 0) {
-                        if (sslEngine.isInboundDone() && sslEngine.isOutboundDone()) {
-                            return;
+                    System.out.println("handleHandshake - NEED_UNWRAP: Reading from input stream.");
+                    if (peerNetData.position() == 0 || result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        int netSize = sslEngine.getSession().getPacketBufferSize();
+                        // Check if the buffer is already larger than packet size, no need to recreate it.
+                        if (peerNetData.capacity() < netSize) {
+                            ByteBuffer b = ByteBuffer.allocate(netSize);
+                            peerNetData.flip();
+                            b.put(peerNetData);
+                            peerNetData = b;
+                            System.out.println("handleHandshake - NEED_UNWRAP: BUFFER_UNDERFLOW encountered, buffer resized.");
                         }
-                        try {
-                            sslEngine.closeInbound();
-                        } catch (Exception e) {
-                            Log.e("BluetoothConnection", "Failed to close inbound", e);
+                        // Read more data from the input stream.
+                        while (inStream.available() > 0) {
+                            int bytesRead = inStream.read(peerNetData.array(), peerNetData.position(), peerNetData.remaining());
+                            if (bytesRead == -1) {
+                                System.out.println("handleHandshake - NEED_UNWRAP: End of stream reached, closing inbound.");
+                                sslEngine.closeInbound();
+                                return;
+                            }
+                            peerNetData.position(peerNetData.position() + bytesRead);
                         }
-                        sslEngine.closeOutbound();
-                        handshakeStatus = sslEngine.getHandshakeStatus();
-                        break;
                     }
                     peerNetData.flip();
-                    result = sslEngine.unwrap(peerNetData, ByteBuffer.allocate(sslEngine.getSession().getApplicationBufferSize()));
+                    result = sslEngine.unwrap(peerNetData, myNetData);
+                    System.out.println("handleHandshake - NEED_UNWRAP: Status after unwrap: " + result.getStatus());
                     peerNetData.compact();
                     handshakeStatus = result.getHandshakeStatus();
                     break;
 
                 case NEED_WRAP:
+                    System.out.println("handleHandshake - wrap (while)");
                     myNetData.clear();
                     result = sslEngine.wrap(ByteBuffer.allocate(0), myNetData);
                     myNetData.flip();
@@ -92,6 +111,7 @@ public class SSLHandler {
                     break;
 
                 case NEED_TASK:
+                    System.out.println("handleHandshake - need task (while)");
                     Runnable task;
                     while ((task = sslEngine.getDelegatedTask()) != null) {
                         new Thread(task).start();
@@ -100,6 +120,7 @@ public class SSLHandler {
                     break;
 
                 case FINISHED:
+                    System.out.println("handleHandshake - finished (while)");
                     break;
 
                 default:
@@ -109,31 +130,78 @@ public class SSLHandler {
     }
 
     private static SSLEngine createSSLEngine(Context context) throws Exception {
+        System.out.println("Inside createSSLEngine");
         String password = "password";
+        InputStream caCertInput = null;
+        InputStream clientCertInput = null;
+        InputStream clientKeyInput = null;
+
         // Load PEM files
-        InputStream caCertInput = context.getResources().openRawResource(R.raw.ca_cert);
-        InputStream clientCertInput = context.getResources().openRawResource(R.raw.client_cert);
-        InputStream clientKeyInput = context.getResources().openRawResource(R.raw.client_key);
+        try {
+            caCertInput = context.getResources().openRawResource(R.raw.ca_cert);
+            clientCertInput = context.getResources().openRawResource(R.raw.client_cert);
+            clientKeyInput = context.getResources().openRawResource(R.raw.client_key);
+        } catch (Exception e) {
+            Log.e("SSLHandler", "Failed to load PEM files: " + e.getMessage());
+            return null;
+        }
+        System.out.println("createSSLEngine - getting keys and certificates");
 
         // Load KeyStore and TrustStore
-        KeyStore keyStore = SSLUtils.loadKeyStore(clientCertInput, clientKeyInput, password);
-        KeyStore trustStore = SSLUtils.loadTrustStore(caCertInput);
+        KeyStore keyStore = null;
+        KeyStore trustStore = null;
+        try {
+            keyStore = SSLUtils.loadKeyStore(clientCertInput, clientKeyInput, password);
+            trustStore = SSLUtils.loadTrustStore(caCertInput);
+        } catch (Exception e) {
+            Log.e("SSLHandler", "Failed to load KeyStore or TrustStore: " + e.getMessage());
+            return null;
+        }
+        System.out.println("createSSLEngine - after loading keys and certificates into KeyStore and TrustStore");
 
         // Initialize KeyManagerFactory
-        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, password.toCharArray());
+        KeyManagerFactory keyManagerFactory = null;
+        try {
+            keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, password.toCharArray());
+        } catch (Exception e) {
+            Log.e("SSLHandler", "Failed to initialize KeyManagerFactory: " + e.getMessage());
+            return null;
+        }
+        System.out.println("createSSLEngine - after initializing key Manager Factory");
 
         // Initialize TrustManagerFactory
-        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustManagerFactory.init(trustStore);
+        TrustManagerFactory trustManagerFactory = null;
+        try {
+            trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(trustStore);
+        } catch (Exception e) {
+            Log.e("SSLHandler", "Failed to initialize TrustManagerFactory: " + e.getMessage());
+            return null;
+        }
+        System.out.println("createSSLEngine - after initializing Trust Manager Factory");
 
         // Initialize SSLContext
-        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
+        SSLContext sslContext = null;
+        try {
+            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
+        } catch (Exception e) {
+            Log.e("SSLHandler", "Failed to initialize SSLContext: " + e.getMessage());
+            return null;
+        }
+        System.out.println("createSSLEngine - SSLContext created");
 
         // Create and configure SSLEngine
-        SSLEngine newSSLEngine = sslContext.createSSLEngine();
-        newSSLEngine.setUseClientMode(true); // Set to false for server mode
+        SSLEngine newSSLEngine = null;
+        try {
+            newSSLEngine = sslContext.createSSLEngine();
+            newSSLEngine.setUseClientMode(true); // Set to false for server mode
+        } catch (Exception e) {
+            Log.e("SSLHandler", "Failed to create SSLEngine: " + e.getMessage());
+            return null;
+        }
+        System.out.println("createSSLEngine - SSLEngine Created");
 
         return newSSLEngine;
     }

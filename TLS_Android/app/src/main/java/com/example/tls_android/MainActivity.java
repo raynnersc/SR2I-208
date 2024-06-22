@@ -164,11 +164,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         SwitchCompat btnTLS = findViewById(R.id.button_tls);
-        boolean isTLSEnable = btnTLS.isChecked();
 
         Button btnConnect = findViewById(R.id.button_connect_bluetooth);
         btnConnect.setOnClickListener(v -> {
             if (device != null) {
+                boolean isTLSEnable = btnTLS.isChecked();
                 bluetoothConnect(isTLSEnable);
                 appendToLog("Connected!");
             } else {
@@ -180,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnDisconnect = findViewById(R.id.button_disconnect_bluetooth);
         btnDisconnect.setOnClickListener(v -> {
             if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
+                boolean isTLSEnable = btnTLS.isChecked();
                 bluetoothDisconnect(isTLSEnable);
                 appendToLog("Disconnected!");
             }
@@ -202,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!text.isEmpty()) {
                         appendToLog("Sent: " + text);
                         text = "SEND" + text;
+                        boolean isTLSEnable = btnTLS.isChecked();
                         if (isTLSEnable) {
                             try {
                                 SSLHandler.sendEncryptedData(text, socket);
@@ -322,12 +324,17 @@ public class MainActivity extends AppCompatActivity {
     private void bluetoothConnect(boolean isTLSEnabled) {
         try {
             Method m = device.getClass().getMethod("createRfcommSocket", int.class);
-            socket = (BluetoothSocket) m.invoke(device, 3);
+            socket = (BluetoothSocket) m.invoke(device, 6);
             if (socket != null) {
+                System.out.println("creating socket bluetooth");
                 socket.connect();
+                System.out.println("socket bluetooth created");
             }
-            if (isTLSEnabled)
+            if (isTLSEnabled) {
+                System.out.println("TLS is enabled - going to TLS connect");
+//                new Thread(() -> TLSConnect());
                 TLSConnect();
+            }
             else
                 startListening();
         } catch (IOException e) {
@@ -385,6 +392,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void TLSConnect() {
         try {
+            System.out.println("Inside TLS connect");
             SSLHandler.initSSLEngine(socket, this);
         } catch (IOException e) {
             Log.e("TLSConnection", "Failed to connect: " + e.getMessage());
