@@ -113,7 +113,7 @@
                     <androidx.appcompat.widget.SwitchCompat
                         android:id="@+id/button_tls"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
+                        android:layout_height="36dp"
                         android:checked="false"
                         android:text="@string/label_button_tls"
                         android:textColor="?attr/colorOnPrimary"

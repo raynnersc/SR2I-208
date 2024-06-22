@@ -3,5 +3,5 @@
     <solid android:color="?attr/colorPrimary" /> <!-- Cor de fundo da caixa -->
     <stroke
         android:width="0dp"/> <!-- Largura da borda da caixa -->
-    <corners android:radius="8dp" /> <!-- Raio dos cantos da caixa -->
+    <corners android:radius="4dp" /> <!-- Raio dos cantos da caixa -->
 </shape>

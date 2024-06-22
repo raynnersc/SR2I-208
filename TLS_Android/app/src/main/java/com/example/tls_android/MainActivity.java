@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
     private void bluetoothConnect(boolean isTLSEnabled) {
         try {
             Method m = device.getClass().getMethod("createRfcommSocket", int.class);
-            socket = (BluetoothSocket) m.invoke(device, 6);
+            socket = (BluetoothSocket) m.invoke(device, 1);
             if (socket != null) {
                 System.out.println("creating socket bluetooth");
                 socket.connect();
@@ -332,8 +332,10 @@ public class MainActivity extends AppCompatActivity {
             }
             if (isTLSEnabled) {
                 System.out.println("TLS is enabled - going to TLS connect");
-//                new Thread(() -> TLSConnect());
                 TLSConnect();
+                System.out.println("TLS - receiving data");
+                startListeningTLS();
+                System.out.println("TLS - data received");
             }
             else
                 startListening();
@@ -398,5 +400,23 @@ public class MainActivity extends AppCompatActivity {
             Log.e("TLSConnection", "Failed to connect: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private void startListeningTLS() {
+        new Thread(() -> {
+            try {
+                while (true) {
+                    String receivedMessage = SSLHandler.receiveEncryptedData(socket);
+                    if (receivedMessage != null && !receivedMessage.equals("")) {
+                        runOnUiThread(() -> {
+                            // Handle the received message, for example, display it
+                            appendToLog("Received: " + receivedMessage);
+                        });
+                    }
+                }
+            } catch (IOException e) {
+                Log.e("startListeningTLS", "Failed to receive data", e);
+            }
+        }).start();
     }
 }
